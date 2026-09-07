@@ -7,9 +7,10 @@ estimate, and execution trace.
 
 ## Run
 
-Requires Python 3.11+ and no third-party packages:
+Requires Python 3.11+. Install the OpenAI SDK used for NVIDIA NIM:
 
 ```powershell
+uv pip install -r requirements.txt
 uv run --python 3.11 python run.py
 ```
 
@@ -21,14 +22,17 @@ Set an NVIDIA API key before starting IRIS to use real LLM calls:
 
 ```powershell
 $env:NVIDIA_API_KEY = "nvapi-..."
-$env:NIM_MODEL = "meta/llama-3.3-70b-instruct" # optional
+$env:NIM_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b" # optional
 uv run --python 3.11 python run.py
 ```
 
-IRIS calls NVIDIA NIM's OpenAI-compatible `POST /v1/chat/completions` endpoint.
-For a self-hosted NIM, configure `NIM_BASE_URL` with its `/v1` URL. If no key is
-present, IRIS produces safe local simulated outputs so the dashboard and test
-suite remain usable. Set `IRIS_RUNTIME=simulated` to force local mode.
+IRIS uses the OpenAI Python SDK against NVIDIA NIM's OpenAI-compatible
+`POST /v1/chat/completions` endpoint, with streaming and NVIDIA reasoning
+enabled. Each role can use a separate `NVIDIA_API_KEY_<ROLE>` so access, usage,
+and rate limits can be isolated; see `.env.example`. For a self-hosted NIM,
+configure `NIM_BASE_URL` with its `/v1` URL. If no key is present or the SDK is
+not installed, IRIS produces safe local simulated outputs. Set
+`IRIS_RUNTIME=simulated` to force local mode.
 
 ## Startup squad
 
