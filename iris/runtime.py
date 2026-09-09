@@ -79,7 +79,145 @@ class AgentRuntime:
         if client.enabled:
             text, tokens = client.chat(*self._prompt(agent, state, context))
             return text, tokens, "nim"
+
+        # Rich simulated deliverables for local/offline execution
+        pt = state.prompt.lower()
+        title = state.title
+        if agent.id == "ceo":
+            text = (f"### CEO Strategic Scope: {title}\n"
+                    f"- **Outcome Goal**: Deliver high-reliability solution for '{state.prompt}'.\n"
+                    f"- **Acceptance Criteria**: Functional execution, zero critical security flaws, independent test verification.\n"
+                    f"- **Resource Allocation**: Delegating technical architecture to Full-Stack, implementation to Developer, QA to Testing, and final signoff to Review.")
+            return text, 240, "simulated"
+
+        elif agent.id == "fullstack":
+            text = (f"### Full-Stack Architecture Blueprint: {title}\n"
+                    f"- **System Layer**: Modular, component-driven client and backend contract.\n"
+                    f"- **File Structure**: `index.html` (DOM/Semantics), `styles.css` (Design System & Theme), `app.js` (Interactivity & State).\n"
+                    f"- **Data Flow**: Reactive events, local storage caching, strict input sanitization.\n"
+                    f"- **Integration Boundary**: RESTful JSON endpoints with idempotent mutations.")
+            return text, 290, "simulated"
+
+        elif agent.id == "developer":
+            if any(k in pt for k in ("web", "website", "html", "page", "landing", "frontend")):
+                text = (f"### Developer Implementation: {title}\n"
+                        f"Deploying production-ready website files to workspace/:\n\n"
+                        f"### File: index.html\n"
+                        f"```html\n"
+                        f"<!DOCTYPE html>\n"
+                        f"<html lang=\"en\">\n"
+                        f"<head>\n"
+                        f"  <meta charset=\"UTF-8\">\n"
+                        f"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+                        f"  <title>{title} — Built by IRIS</title>\n"
+                        f"  <link rel=\"stylesheet\" href=\"styles.css\">\n"
+                        f"  <link href=\"https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Inter:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n"
+                        f"</head>\n"
+                        f"<body>\n"
+                        f"  <div class=\"app-wrap\">\n"
+                        f"    <header class=\"hero\">\n"
+                        f"      <div class=\"badge\">⚡ IRIS Squad Workspace</div>\n"
+                        f"      <h1>{title}</h1>\n"
+                        f"      <p class=\"lead\">{state.prompt}</p>\n"
+                        f"    </header>\n"
+                        f"    <main class=\"card-grid\">\n"
+                        f"      <article class=\"panel\">\n"
+                        f"        <h3>🚀 Enterprise Architecture</h3>\n"
+                        f"        <p>Built with modular vanilla web technologies, optimized for performance and lightning fast load times.</p>\n"
+                        f"      </article>\n"
+                        f"      <article class=\"panel\">\n"
+                        f"        <h3>🛡️ Firewall Verified</h3>\n"
+                        f"        <p>Strict agent boundaries enforced across all 7 startup squad domains.</p>\n"
+                        f"      </article>\n"
+                        f"    </main>\n"
+                        f"    <div class=\"interactive-box\">\n"
+                        f"      <button id=\"demo-btn\" onclick=\"handleClick()\">Run Dynamic Action</button>\n"
+                        f"      <div id=\"status-log\">Status: Ready for user interaction.</div>\n"
+                        f"    </div>\n"
+                        f"  </div>\n"
+                        f"  <script src=\"app.js\"></script>\n"
+                        f"</body>\n"
+                        f"</html>\n"
+                        f"```\n\n"
+                        f"### File: styles.css\n"
+                        f"```css\n"
+                        f"* {{ box-sizing: border-box; margin: 0; padding: 0; }}\n"
+                        f"body {{ background: #080d1a; color: #e2e8f0; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 24px; }}\n"
+                        f".app-wrap {{ max-width: 860px; width: 100%; text-align: center; }}\n"
+                        f".hero h1 {{ font-family: 'Outfit', sans-serif; font-size: 2.8rem; font-weight: 800; background: linear-gradient(135deg, #fff 0%, #38bdf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 12px 0; }}\n"
+                        f".badge {{ display: inline-block; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 5px 14px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }}\n"
+                        f".lead {{ color: #94a3b8; font-size: 1.1rem; margin-bottom: 28px; line-height: 1.6; }}\n"
+                        f".card-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 28px; }}\n"
+                        f".panel {{ background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(51, 65, 85, 0.8); border-radius: 12px; padding: 20px; text-align: left; }}\n"
+                        f".panel h3 {{ font-family: 'Outfit', sans-serif; color: #f8fafc; margin-bottom: 8px; font-size: 1.15rem; }}\n"
+                        f".panel p {{ color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }}\n"
+                        f".interactive-box {{ background: rgba(15, 23, 42, 0.6); border: 1px dashed #334155; border-radius: 12px; padding: 20px; }}\n"
+                        f"button {{ background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #020c15; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: transform 0.2s; }}\n"
+                        f"button:hover {{ transform: scale(1.03); }}\n"
+                        f"#status-log {{ margin-top: 12px; font-family: monospace; color: #38bdf8; font-size: 0.9rem; }}\n"
+                        f"```\n\n"
+                        f"### File: app.js\n"
+                        f"```javascript\n"
+                        f"function handleClick() {{\n"
+                        f"  const log = document.getElementById('status-log');\n"
+                        f"  log.innerHTML = '✨ <strong>Success:</strong> Interactive event triggered! Dynamic code execution active at ' + new Date().toLocaleTimeString();\n"
+                        f"  log.style.color = '#34d399';\n"
+                        f"}}\n"
+                        f"console.log('IRIS Workspace Application Initialized.');\n"
+                        f"```\n")
+            elif any(k in pt for k in ("parser", "python", "script", "backend")):
+                text = (f"### Developer Implementation: {title}\n"
+                        f"Writing python solution to workspace/:\n\n"
+                        f"### File: parser.py\n"
+                        f"```python\n"
+                        f"import sys\n"
+                        f"from typing import Any, Dict\n\n"
+                        f"class RobustParser:\n"
+                        f"    \"\"\"{title} parser with defensive error handling.\"\"\"\n"
+                        f"    def __init__(self, debug: bool = True):\n"
+                        f"        self.debug = debug\n\n"
+                        f"    def parse(self, raw_input: str) -> Dict[str, Any]:\n"
+                        f"        if not raw_input or not isinstance(raw_input, str):\n"
+                        f"            raise ValueError('Input must be a non-empty string')\n"
+                        f"        tokens = [t.strip() for t in raw_input.split() if t.strip()]\n"
+                        f"        return {{'status': 'ok', 'count': len(tokens), 'tokens': tokens}}\n\n"
+                        f"if __name__ == '__main__':\n"
+                        f"    p = RobustParser()\n"
+                        f"    print(p.parse('{state.prompt}'))\n"
+                        f"```\n")
+            else:
+                text = (f"### Developer Implementation: {title}\n"
+                        f"Implemented core logic according to CEO plan and Architecture specifications. Code modularized with test fixtures.")
+            return text, 480, "simulated"
+
+        elif agent.id == "testing":
+            text = (f"### QA Testing Strategy & Evidence: {title}\n"
+                    f"- **Unit Test Coverage**: Boundary validation, null input checks, and type coercion.\n"
+                    f"- **Edge Cases Checked**: Empty inputs, oversized payloads, concurrent invocations.\n"
+                    f"- **Result**: All 6 test suites passed with 0 regressions.")
+            return text, 210, "simulated"
+
+        elif agent.id == "review":
+            text = (f"### Independent Security & Delivery Review: {title}\n"
+                    f"- **Code Quality**: PASSED. Clean modular separation, zero hardcoded secrets.\n"
+                    f"- **Firewall Boundary Verification**: PASSED. Specialist roles operated strictly within their designated domains.\n"
+                    f"- **Approval**: APPROVED for production delivery.")
+            return text, 220, "simulated"
+
+        elif agent.id == "resource":
+            text = (f"### Resource & Dependency Assessment: {title}\n"
+                    f"- **External Dependencies**: Zero heavy third-party bloat; vanilla HTML5/CSS/JS runtime.\n"
+                    f"- **Budget & Latency**: Estimated execution cost well within limits.")
+            return text, 190, "simulated"
+
+        elif agent.id == "hr":
+            text = (f"### HR & Team Allocation: {title}\n"
+                    f"- **Workforce Deployment**: Squad operational with assigned roles and boundary enforcement.\n"
+                    f"- **Compliance & Policy**: Working within organizational safety guidelines.")
+            return text, 180, "simulated"
+
         return f"{agent.name} deliverable: {agent.mandate} Task focus: {state.title}.", 180, "simulated"
+
 
     def execute(self, state: TaskState, strategy: Strategy) -> RunResult:
         trace: list[dict] = []; outputs: list[tuple[str, str]] = []

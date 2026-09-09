@@ -2,7 +2,31 @@
 <html><head><meta charset="utf-8"><title>IRIS Startup Agent OS</title><style>
 *{box-sizing:border-box}body{margin:0;background:#09111f;color:#dbe7ff;font:15px system-ui,sans-serif}main{max-width:1160px;margin:auto;padding:36px}h1{font-size:36px;margin:0}h1 span{color:#6ee7d1}.sub{color:#91a4c7;margin:6px 0 28px}.grid{display:grid;grid-template-columns:360px 1fr;gap:18px}.card{background:#111d31;border:1px solid #263a5d;border-radius:12px;padding:18px}label{display:block;margin:10px 0 4px;color:#abc0e8}input,textarea,select{width:100%;background:#07101e;color:#fff;border:1px solid #344b74;border-radius:7px;padding:9px}textarea{height:120px}button{margin-top:16px;background:#48d6bb;border:0;border-radius:7px;padding:11px 16px;font-weight:700;cursor:pointer}.stat{display:inline-block;background:#182a47;border-radius:8px;padding:12px;margin:0 8px 12px 0}.stat b{font-size:22px;display:block;color:#6ee7d1}pre{white-space:pre-wrap;background:#07101e;padding:14px;border-radius:8px;max-height:430px;overflow:auto}table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #263a5d;text-align:left}a{color:#6ee7d1;cursor:pointer}.pill{color:#6ee7d1}@media(max-width:760px){.grid{grid-template-columns:1fr}main{padding:18px}}
 </style></head><body><main><h1><span>IRIS</span> Startup Agent OS</h1><p class="sub">CEO plan → parallel specialist delivery → independent review · NVIDIA NIM ready</p><div class="grid"><section class="card"><h2>Launch a company task</h2><label>Title</label><input id="title" value="Parser implementation"><label>Task</label><textarea id="prompt">Implement and test a Python parser with robust error handling and verification.</textarea><label>Budget (estimated USD)</label><input id="budget" type="number" step=".01" value="0.25"><label>Operating mode</label><select id="baseline"><option value="B8">Startup Squad — 6+ agents</option><option value="B0">Single CEO</option><option value="B1">Small team</option><option value="B3">Parallel squad</option><option value="B5">Resource-aware squad</option><option value="B7">Experience-aware squad</option></select><button onclick="submitTask()">Run startup squad</button></section><section><div id="stats"></div><div class="card"><h2>Execution result</h2><pre id="result">Submit a task to see the CEO plan, parallel delivery lanes, independent review, and trace.</pre></div></section></div><section class="card" style="margin-top:18px"><h2>Task history</h2><table><thead><tr><th>ID</th><th>Task</th><th>Success</th><th>Confidence</th><th>Cost</th><th>Open</th></tr></thead><tbody id="history"></tbody></table></section></main><script>
-async function load(){let d=await fetch('/api/dashboard').then(r=>r.json());stats.innerHTML=`<div class=stat><b>${d.completed}</b>runs</div><div class=stat><b>${Math.round(d.success_rate*100)}%</b>success rate</div>`;history.innerHTML=d.tasks.map(t=>`<tr><td>${t.id}</td><td>${t.title}</td><td class=pill>${t.success?'PASS':'FAIL'}</td><td>${t.confidence}</td><td>$${t.cost}</td><td><a onclick="openTask(${t.id})">trace</a></td></tr>`).join('')}
-async function submitTask(){result.textContent='CEO planning and launching parallel agents…';let body={title:title.value,prompt:prompt.value,budget:+budget.value,baseline:baseline.value};let d=await fetch('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());result.textContent=JSON.stringify(d,null,2);load()}
-async function openTask(id){let d=await fetch('/api/tasks/'+id).then(r=>r.json());result.textContent=JSON.stringify(d,null,2)}load();
+const $ = id => document.getElementById(id);
+async function load(){
+  let d = await fetch('/api/dashboard').then(r => r.json());
+  $('stats').innerHTML = `<div class=stat><b>${d.completed}</b>runs</div><div class=stat><b>${Math.round(d.success_rate*100)}%</b>success rate</div>`;
+  $('history').innerHTML = d.tasks.map(t => `<tr><td>${t.id}</td><td>${t.title}</td><td class=pill>${t.success?'PASS':'FAIL'}</td><td>${t.confidence}</td><td>$${t.cost}</td><td><a onclick="openTask(${t.id})">trace</a></td></tr>`).join('');
+}
+async function submitTask(){
+  $('result').textContent = 'CEO planning and launching parallel agents…';
+  let body = {
+    title: $('title').value,
+    prompt: $('prompt').value,
+    budget: +$('budget').value,
+    baseline: $('baseline').value
+  };
+  let d = await fetch('/api/tasks', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  }).then(r => r.json());
+  $('result').textContent = JSON.stringify(d, null, 2);
+  load();
+}
+async function openTask(id){
+  let d = await fetch('/api/tasks/' + id).then(r => r.json());
+  $('result').textContent = JSON.stringify(d, null, 2);
+}
+load();
 </script></body></html>

@@ -64,3 +64,21 @@ class Store:
         if not scored: return None
         _, row = max(scored, key=lambda x: x[0])
         return {"id": row["id"], "strategy": json.loads(row["strategy"]), "lesson": row["lesson"]}
+
+    def list_experiences(self) -> list[dict]:
+        with self.connection() as db:
+            rows = db.execute("SELECT id, keywords, strategy, outcome, lesson, created_at FROM experiences ORDER BY id DESC LIMIT 100").fetchall()
+        return [{
+            "id": r["id"],
+            "keywords": json.loads(r["keywords"]),
+            "strategy": json.loads(r["strategy"]),
+            "outcome": r["outcome"],
+            "lesson": r["lesson"],
+            "created_at": r["created_at"]
+        } for r in rows]
+
+    def delete_experience(self, exp_id: int) -> bool:
+        with self.connection() as db:
+            cursor = db.execute("DELETE FROM experiences WHERE id=?", (exp_id,))
+            return cursor.rowcount > 0
+
