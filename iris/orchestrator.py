@@ -7,6 +7,7 @@ from .models import RunResult, Strategy, TaskState
 from .registry import AGENTS, matching
 from .runtime import AgentRuntime
 from .storage import Store
+from .tools import slugify
 from .workspace import WorkspaceManager
 
 

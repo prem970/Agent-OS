@@ -807,9 +807,20 @@
           <div id="code-inspector" style="display: none; flex: 1; flex-direction: column; padding: 14px; background: #060b16;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <span id="editing-filename" style="font-family: monospace; font-size: 0.88rem; color: #38bdf8;">index.html</span>
-              <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="saveCurrentFile()">Save Changes</button>
+              <div style="display: flex; gap: 8px;">
+                <button id="btn-run-script" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem; background: linear-gradient(135deg, #6366f1, #38bdf8);" onclick="executeSelectedScript()">▶ Run on Local System</button>
+                <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="saveCurrentFile()">Save Changes</button>
+              </div>
             </div>
             <textarea id="file-editor-content" style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #081120; border-color: #243552;"></textarea>
+            <!-- Local Terminal Box -->
+            <div id="terminal-box" style="display: none; background: #020611; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-top: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">⚡ LOCAL SYSTEM EXECUTION</span>
+                <span id="terminal-exit-code" class="badge-pill green">Exit: 0</span>
+              </div>
+              <pre id="terminal-output" style="font-family: monospace; font-size: 0.82rem; color: #e2e8f0; max-height: 140px; overflow: auto; white-space: pre-wrap;"></pre>
+            </div>
           </div>
         </div>
       </div>
@@ -1130,6 +1141,16 @@ python run.py</pre>
         // Show artifacts alert if files written
         if (data.result && data.result.artifacts && data.result.artifacts.length > 0) {
           wsAlert.style.display = 'flex';
+          const proj = data.result.project_folder || '';
+          wsAlert.innerHTML = `
+            <div style="font-size: 0.88rem; color: #34d399;">
+              🎉 <strong>Autonomous Action Complete:</strong> Created project folder <code style="color: #6ee7d1;">workspace/${proj}/</code> with ${data.result.artifacts.length} files deployed on local system!
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-primary" style="padding: 5px 12px; font-size: 0.8rem;" onclick="openProjectPreview('${proj}')">Live Preview →</button>
+              <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.8rem;" onclick="switchTab('workspace')">Workspace Folder →</button>
+            </div>
+          `;
         }
 
         showDeliverableTab('all');
@@ -1175,6 +1196,13 @@ python run.py</pre>
           bodyEl.textContent = `${target || tab} deliverable not generated in this run configuration.`;
         }
       }
+    }
+
+    function openProjectPreview(proj) {
+      switchTab('workspace');
+      const target = proj ? `${proj}/index.html` : 'index.html';
+      selectFile(target);
+      setPreviewMode('web');
     }
 
     // --- Workspace File Explorer ---
@@ -1247,6 +1275,35 @@ python run.py</pre>
       });
       alert(`File '${CURRENT_FILE}' saved!`);
       reloadPreview();
+    }
+
+    async function executeSelectedScript() {
+      if (!CURRENT_FILE) return;
+      const box = $('terminal-box');
+      const out = $('terminal-output');
+      const exitBadge = $('terminal-exit-code');
+
+      box.style.display = 'block';
+      out.textContent = `Executing '${CURRENT_FILE}' on local system...`;
+
+      try {
+        const res = await fetch('/api/workspace/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: CURRENT_FILE })
+        });
+        const data = await res.json();
+        exitBadge.className = 'badge-pill ' + (data.exit_code === 0 ? 'green' : 'rose');
+        exitBadge.textContent = `Exit: ${data.exit_code}`;
+        out.textContent = (data.stdout || '') + (data.stderr ? '\n[Error/Stderr]: ' + data.stderr : '');
+        if (!out.textContent.trim()) {
+          out.textContent = `[Process completed with exit code ${data.exit_code} (no output)]`;
+        }
+      } catch (err) {
+        exitBadge.className = 'badge-pill rose';
+        exitBadge.textContent = 'Error';
+        out.textContent = 'Failed to execute: ' + err.message;
+      }
     }
 
     async function createNewFile() {

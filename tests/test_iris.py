@@ -66,4 +66,20 @@ class IrisTests(unittest.TestCase):
         self.assertFalse(dev_pass["blocked"])
         self.assertTrue(len(dev_pass["artifacts"]) > 0 or len(self.app.workspace.list_files()) > 0)
 
+    def test_project_folder_creation_and_local_execution(self):
+        # 1. Test project folder creation on local machine
+        folder = self.app.workspace.tools.create_project_folder("test-calculator")
+        self.assertTrue(folder.is_dir())
+
+        # 2. Test writing a real script to that folder
+        script_code = "import sys\nprint('CALCULATION_RESULT: 42')\nsys.exit(0)\n"
+        file_info = self.app.workspace.tools.write_file_to_project("test-calculator", "calc.py", script_code)
+        self.assertEqual(file_info["name"], "calc.py")
+
+        # 3. Test local execution on user's system
+        exec_res = self.app.workspace.tools.execute_script("test-calculator", "calc.py")
+        self.assertTrue(exec_res["success"])
+        self.assertEqual(exec_res["exit_code"], 0)
+        self.assertIn("CALCULATION_RESULT: 42", exec_res["stdout"])
+
 if __name__ == "__main__": unittest.main()
