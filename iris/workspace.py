@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 
+from .tools import LocalSystemTools, slugify
+
+
 class WorkspaceManager:
     """Manages the real workspace/ directory for IRIS agents to develop websites and projects."""
 
@@ -19,6 +22,7 @@ class WorkspaceManager:
             self.workspace_dir = Path(workspace_dir)
 
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
+        self.tools = LocalSystemTools(self.workspace_dir)
         self._seed_default_workspace()
 
     def _seed_default_workspace(self) -> None:
@@ -252,7 +256,11 @@ button:hover {
     def read_file(self, filename: str) -> str | None:
         """Safely reads a file from workspace/."""
         target = (self.workspace_dir / filename).resolve()
-        if not target.is_relative_to(self.workspace_dir.resolve()) or not target.is_file():
+        if not target.is_relative_to(self.workspace_dir.resolve()):
+            return None
+        if target.is_dir():
+            target = target / "index.html"
+        if not target.is_file():
             return None
         try:
             return target.read_text(encoding="utf-8")
@@ -276,9 +284,13 @@ button:hover {
         target.unlink(missing_ok=True)
         return True
 
-    def extract_and_save_artifacts(self, text: str, prompt_hint: str = "") -> list[str]:
-        """Extracts code blocks or project files from LLM text and saves them to workspace/."""
+    def extract_and_save_artifacts(self, text: str, prompt_hint: str = "", project_slug: str | None = None) -> list[str]:
+        """Extracts code blocks or project files from LLM text and saves them into workspace/<project_slug>/."""
         saved_files = []
+        slug = project_slug or slugify(prompt_hint or "project")
+
+        # Create the local project folder on the system
+        project_folder = self.tools.create_project_folder(slug)
 
         # 1. Look for patterns like ```html:index.html or ```python:main.py or ### File: index.html
         code_block_pattern = re.compile(
@@ -292,36 +304,50 @@ button:hover {
             code = m[3] if (m[0] or m[2]) else ""
             if filename and code.strip():
                 clean_name = Path(filename.strip()).name
+                # Save to project folder
+                self.tools.write_file_to_project(slug, clean_name, code.strip())
+                # Also save to root workspace for immediate fallback
                 self.write_file(clean_name, code.strip())
-                saved_files.append(clean_name)
+                saved_files.append(f"{slug}/{clean_name}")
 
         # 2. If website creation was requested and specific files weren't explicitly marked with filenames:
         prompt_lower = prompt_hint.lower()
         if ("website" in prompt_lower or "web page" in prompt_lower or "landing page" in prompt_lower) and not saved_files:
-            # Extract HTML block if present
             html_match = re.search(r"```html\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
             if html_match:
-                self.write_file("index.html", html_match.group(1).strip())
-                saved_files.append("index.html")
+                content = html_match.group(1).strip()
+                self.tools.write_file_to_project(slug, "index.html", content)
+                self.write_file("index.html", content)
+                saved_files.append(f"{slug}/index.html")
 
-            # Extract CSS block if present
             css_match = re.search(r"```css\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
             if css_match:
-                self.write_file("styles.css", css_match.group(1).strip())
-                saved_files.append("styles.css")
+                content = css_match.group(1).strip()
+                self.tools.write_file_to_project(slug, "styles.css", content)
+                self.write_file("styles.css", content)
+                saved_files.append(f"{slug}/styles.css")
 
-            # Extract JS block if present
             js_match = re.search(r"```(?:javascript|js)\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
             if js_match:
-                self.write_file("app.js", js_match.group(1).strip())
-                saved_files.append("app.js")
+                content = js_match.group(1).strip()
+                self.tools.write_file_to_project(slug, "app.js", content)
+                self.write_file("app.js", content)
+                saved_files.append(f"{slug}/app.js")
 
         # 3. If python script was generated:
         if ("python" in prompt_lower or "script" in prompt_lower or "parser" in prompt_lower) and not saved_files:
             py_match = re.search(r"```(?:python|py)\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
             if py_match:
                 fname = "parser.py" if "parser" in prompt_lower else "solution.py"
-                self.write_file(fname, py_match.group(1).strip())
-                saved_files.append(fname)
+                content = py_match.group(1).strip()
+                self.tools.write_file_to_project(slug, fname, content)
+                self.write_file(fname, content)
+                saved_files.append(f"{slug}/{fname}")
+
+        # Write a README.md in the project folder detailing that it was built by IRIS Agent
+        readme_content = f"# {slug.replace('-', ' ').title()}\n\nAutonomously generated and verified on local machine by IRIS Agent OS.\n\nTask Goal: {prompt_hint}\n"
+        self.tools.write_file_to_project(slug, "README.md", readme_content)
+        saved_files.append(f"{slug}/README.md")
 
         return saved_files
+

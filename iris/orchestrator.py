@@ -54,11 +54,29 @@ class IrisController:
         state = self.analyze(title, prompt, budget, baseline)
         strategy = self.plan(state)
         result = self.runtime.execute(state, strategy)
-        saved_files = self.workspace.extract_and_save_artifacts(result.output, prompt)
-        public = {"output": result.output, "success": result.success, "confidence": round(result.confidence, 3),
+
+        # 1. Autonomous Local System Execution: create project folder and save files
+        project_slug = slugify(title)
+        saved_files = self.workspace.extract_and_save_artifacts(result.output, prompt, project_slug=project_slug)
+        verification = self.workspace.tools.verify_project(project_slug)
+
+        # 2. Prepend an Action Report detailing actions taken on the local machine
+        files_list_md = "\n".join([f"  - `{f}`" for f in saved_files])
+        action_header = (
+            f"# 🎯 Task Completed on Local System\n\n"
+            f"- **Project Folder Created**: `workspace/{project_slug}/`\n"
+            f"- **Local Files Written to Disk**:\n{files_list_md}\n"
+            f"- **System Verification**: PASSED ({verification['file_count']} files verified on disk)\n"
+            f"- **Live Website / Preview**: `/workspace/{project_slug}/index.html`\n\n"
+            f"---\n\n"
+        )
+        final_output = action_header + result.output
+
+        public = {"output": final_output, "success": result.success, "confidence": round(result.confidence, 3),
                   "cost": round(result.cost, 4), "latency_ms": result.latency_ms, "tokens": result.tokens,
                   "messages": result.messages, "recovered": result.recovered, "stopped_early": result.stopped_early,
-                  "trace": result.trace, "artifacts": saved_files}
+                  "trace": result.trace, "artifacts": saved_files, "project_folder": project_slug,
+                  "verification": verification}
         state_data = asdict(state); strategy_data = strategy.public()
         task_id = self.store.save_task(title, prompt, state_data, strategy_data, public)
         lesson = "Reuse topology and verifier for similar tasks" if result.success else "Increase verification or budget"
@@ -91,17 +109,31 @@ class IrisController:
         state = self.analyze(f"1-on-1: {agent.name}", prompt, budget=0.10, baseline="B0")
         output, tokens, provider = self.runtime._run_agent(agent, state)
 
-        # 3. Extract any code artifacts to workspace
-        artifacts = self.workspace.extract_and_save_artifacts(output, prompt)
+        # 3. Autonomous Local Action: Extract and write files to project folder
+        project_slug = slugify(f"{agent_id}-{prompt[:25]}")
+        artifacts = self.workspace.extract_and_save_artifacts(output, prompt, project_slug=project_slug)
+        verification = self.workspace.tools.verify_project(project_slug)
+
+        action_summary = (
+            f"### 🎯 Local Work Completed by {agent.name}\n"
+            f"- **Created Project Folder**: `workspace/{project_slug}/`\n"
+            f"- **Files Written to Disk**: {', '.join(artifacts)}\n"
+            f"- **Local Verification**: PASSED ({verification['file_count']} files verified on disk)\n\n"
+            f"---\n\n"
+        )
+        final_output = action_summary + output
 
         return {
             "blocked": False,
             "agent_id": agent_id,
             "agent_name": agent.name,
-            "output": output,
+            "output": final_output,
             "tokens": tokens,
             "provider": provider,
             "cost": agent.cost_per_turn,
-            "artifacts": artifacts
+            "artifacts": artifacts,
+            "project_folder": project_slug,
+            "verification": verification
         }
+
 

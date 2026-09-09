@@ -211,6 +211,17 @@ class Handler(BaseHTTPRequestHandler):
             APP.store.save_experience(keywords, strategy, outcome, lesson)
             return self.send(201, {"status": "memory_stored", "keywords": keywords, "lesson": lesson})
 
+        # 5. Execute Script in Workspace Locally
+        if path == "/api/workspace/run":
+            script_path = body.get("path", "").strip()
+            if not script_path:
+                return self.send(400, {"error": "path is required"})
+            parts = script_path.split("/", 1)
+            project = parts[0] if len(parts) > 1 else ""
+            script = parts[1] if len(parts) > 1 else parts[0]
+            result = WORKSPACE.tools.execute_script(project, script)
+            return self.send(200, result)
+
         self.send(404, {"error": "not found"})
 
     def do_DELETE(self):
