@@ -47,4 +47,23 @@ class IrisTests(unittest.TestCase):
         experiences = self.app.store.list_experiences()
         self.assertTrue(any("modular vanilla CSS" in e["lesson"] for e in experiences))
 
+    def test_web_handler_api(self):
+        import io
+        import json
+        from iris.web import Handler
+
+        # Mock GET /api/dashboard
+        class MockRequest:
+            def makefile(self, *args, **kwargs):
+                return io.BytesIO(b"GET /api/dashboard HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+        # Test firewall via app.run_single_agent
+        hr_block = self.app.run_single_agent("hr", "develop a modern website in html")
+        self.assertTrue(hr_block["blocked"])
+        self.assertEqual(hr_block["suggested_agent"], "developer")
+
+        dev_pass = self.app.run_single_agent("developer", "develop a modern website in html")
+        self.assertFalse(dev_pass["blocked"])
+        self.assertTrue(len(dev_pass["artifacts"]) > 0 or len(self.app.workspace.list_files()) > 0)
+
 if __name__ == "__main__": unittest.main()
