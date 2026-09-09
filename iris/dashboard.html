@@ -1,32 +1,1582 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>IRIS Startup Agent OS</title><style>
-*{box-sizing:border-box}body{margin:0;background:#09111f;color:#dbe7ff;font:15px system-ui,sans-serif}main{max-width:1160px;margin:auto;padding:36px}h1{font-size:36px;margin:0}h1 span{color:#6ee7d1}.sub{color:#91a4c7;margin:6px 0 28px}.grid{display:grid;grid-template-columns:360px 1fr;gap:18px}.card{background:#111d31;border:1px solid #263a5d;border-radius:12px;padding:18px}label{display:block;margin:10px 0 4px;color:#abc0e8}input,textarea,select{width:100%;background:#07101e;color:#fff;border:1px solid #344b74;border-radius:7px;padding:9px}textarea{height:120px}button{margin-top:16px;background:#48d6bb;border:0;border-radius:7px;padding:11px 16px;font-weight:700;cursor:pointer}.stat{display:inline-block;background:#182a47;border-radius:8px;padding:12px;margin:0 8px 12px 0}.stat b{font-size:22px;display:block;color:#6ee7d1}pre{white-space:pre-wrap;background:#07101e;padding:14px;border-radius:8px;max-height:430px;overflow:auto}table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #263a5d;text-align:left}a{color:#6ee7d1;cursor:pointer}.pill{color:#6ee7d1}@media(max-width:760px){.grid{grid-template-columns:1fr}main{padding:18px}}
-</style></head><body><main><h1><span>IRIS</span> Startup Agent OS</h1><p class="sub">CEO plan → parallel specialist delivery → independent review · NVIDIA NIM ready</p><div class="grid"><section class="card"><h2>Launch a company task</h2><label>Title</label><input id="title" value="Parser implementation"><label>Task</label><textarea id="prompt">Implement and test a Python parser with robust error handling and verification.</textarea><label>Budget (estimated USD)</label><input id="budget" type="number" step=".01" value="0.25"><label>Operating mode</label><select id="baseline"><option value="B8">Startup Squad — 6+ agents</option><option value="B0">Single CEO</option><option value="B1">Small team</option><option value="B3">Parallel squad</option><option value="B5">Resource-aware squad</option><option value="B7">Experience-aware squad</option></select><button onclick="submitTask()">Run startup squad</button></section><section><div id="stats"></div><div class="card"><h2>Execution result</h2><pre id="result">Submit a task to see the CEO plan, parallel delivery lanes, independent review, and trace.</pre></div></section></div><section class="card" style="margin-top:18px"><h2>Task history</h2><table><thead><tr><th>ID</th><th>Task</th><th>Success</th><th>Confidence</th><th>Cost</th><th>Open</th></tr></thead><tbody id="history"></tbody></table></section></main><script>
-const $ = id => document.getElementById(id);
-async function load(){
-  let d = await fetch('/api/dashboard').then(r => r.json());
-  $('stats').innerHTML = `<div class=stat><b>${d.completed}</b>runs</div><div class=stat><b>${Math.round(d.success_rate*100)}%</b>success rate</div>`;
-  $('history').innerHTML = d.tasks.map(t => `<tr><td>${t.id}</td><td>${t.title}</td><td class=pill>${t.success?'PASS':'FAIL'}</td><td>${t.confidence}</td><td>$${t.cost}</td><td><a onclick="openTask(${t.id})">trace</a></td></tr>`).join('');
-}
-async function submitTask(){
-  $('result').textContent = 'CEO planning and launching parallel agents…';
-  let body = {
-    title: $('title').value,
-    prompt: $('prompt').value,
-    budget: +$('budget').value,
-    baseline: $('baseline').value
-  };
-  let d = await fetch('/api/tasks', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body)
-  }).then(r => r.json());
-  $('result').textContent = JSON.stringify(d, null, 2);
-  load();
-}
-async function openTask(id){
-  let d = await fetch('/api/tasks/' + id).then(r => r.json());
-  $('result').textContent = JSON.stringify(d, null, 2);
-}
-load();
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IRIS Startup Agent OS — Autonomous Co-Work & Multi-Agent Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #060b14;
+      --bg-card: rgba(13, 22, 40, 0.75);
+      --bg-card-hover: rgba(18, 30, 54, 0.85);
+      --border: rgba(45, 66, 102, 0.55);
+      --border-focus: #38bdf8;
+      --primary: #10b981;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      --accent: #06b6d4;
+      --indigo: #6366f1;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% -10%, #132240 0%, var(--bg-base) 80%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--accent); text-decoration: none; cursor: pointer; }
+    button { font-family: inherit; }
+
+    /* Top Navigation Header */
+    header.navbar {
+      background: rgba(8, 14, 26, 0.88);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0 28px;
+    }
+    .nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      color: #03131e;
+      font-size: 1.15rem;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.5px;
+    }
+    .brand-title span {
+      background: linear-gradient(135deg, #34d399, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-badge {
+      font-size: 0.72rem;
+      background: rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    /* Nav Tabs */
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(45, 66, 102, 0.4);
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+    .nav-btn.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2));
+      color: #6ee7d1;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+    /* Quick KPI Bar */
+    .nav-kpis {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .kpi-chip {
+      background: rgba(18, 30, 54, 0.6);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .kpi-chip strong { color: #38bdf8; font-family: 'Outfit', sans-serif; font-size: 0.95rem; }
+
+    /* Main Container & Page Views */
+    main.content {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 28px 28px 60px;
+      flex: 1;
+    }
+    .page-view { display: none; animation: fadeIn 0.25s ease-out; }
+    .page-view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Common Card Styles */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(45, 66, 102, 0.4);
+    }
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge-pill.green { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .badge-pill.blue { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .badge-pill.amber { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+    .badge-pill.rose { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+
+    /* Form Inputs */
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #cbd5e1; margin: 12px 0 6px; }
+    input, textarea, select {
+      width: 100%;
+      background: #08101e;
+      color: #f8fafc;
+      border: 1px solid #293b58;
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+    textarea { resize: vertical; min-height: 110px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+      color: #03131e;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+    .btn-secondary {
+      background: #17253d;
+      color: #e2e8f0;
+      border: 1px solid #334768;
+    }
+    .btn-secondary:hover { background: #1e3354; color: #fff; }
+    .btn-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.3); }
+
+    /* Grid Layouts */
+    .grid-cowork {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 22px;
+    }
+    @media (max-width: 1024px) {
+      .grid-cowork { grid-template-columns: 1fr; }
+    }
+
+    /* Template Presets */
+    .presets-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+    }
+    .preset-chip {
+      background: #111d33;
+      border: 1px solid #283a5a;
+      color: #94a3b8;
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-chip:hover {
+      background: #1c2e4e;
+      color: #38bdf8;
+      border-color: #38bdf8;
+    }
+
+    /* Execution Progress Banner */
+    .execution-steps {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #091325;
+      border: 1px solid #233758;
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 18px;
+      font-size: 0.82rem;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-dim);
+    }
+    .step-item.active { color: #38bdf8; font-weight: 600; }
+    .step-item.done { color: #34d399; font-weight: 600; }
+    .step-arrow { color: var(--text-dim); font-size: 0.9rem; }
+
+    /* Memory Recall Banner */
+    .memory-recall-banner {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.15));
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.88rem;
+    }
+    .memory-icon { font-size: 1.3rem; }
+
+    /* Deliverables Tabs */
+    .deliverables-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .deliv-tab-btn {
+      background: #0d1729;
+      border: 1px solid #25395c;
+      color: #94a3b8;
+      padding: 7px 14px;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .deliv-tab-btn.active {
+      background: #1a2c4e;
+      color: #38bdf8;
+      border-color: #38bdf8;
+    }
+    .deliverable-content {
+      background: #060e1d;
+      border: 1px solid #21324e;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-height: 480px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Workspace Explorer Layout */
+    .grid-workspace {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 22px;
+      height: calc(100vh - 170px);
+      min-height: 600px;
+    }
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      max-height: calc(100vh - 270px);
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #091325;
+      border: 1px solid #223555;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .file-item:hover, .file-item.selected {
+      background: #132442;
+      border-color: #38bdf8;
+    }
+    .file-item-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+    .file-meta { font-size: 0.72rem; color: var(--text-dim); }
+
+    /* Workspace Live Preview Iframe */
+    .preview-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #091325;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid #223555;
+    }
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0e1b30;
+      padding: 10px 16px;
+      border-bottom: 1px solid #223555;
+    }
+    .preview-url {
+      background: #07101e;
+      border: 1px solid #223555;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .preview-iframe {
+      width: 100%;
+      flex: 1;
+      border: none;
+      background: #fff;
+    }
+
+    /* Agent Desks View */
+    .agent-selector-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+    .agent-pill-btn {
+      background: #0d1729;
+      border: 1px solid #25395c;
+      color: #cbd5e1;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .agent-pill-btn:hover { background: #172744; border-color: #38bdf8; }
+    .agent-pill-btn.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.25));
+      border-color: #34d399;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+    }
+    .agent-desk-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 22px;
+    }
+    @media (max-width: 960px) { .agent-desk-grid { grid-template-columns: 1fr; } }
+
+    /* Firewall Alert Banner */
+    .firewall-alert {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-top: 14px;
+      animation: shake 0.3s ease-in-out;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+    .firewall-alert-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f87171;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .firewall-alert p {
+      color: #cbd5e1;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    /* Memory Bank View */
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .memory-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .memory-card:hover { transform: translateY(-3px); border-color: rgba(99, 102, 241, 0.6); }
+    .memory-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .keywords-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+    .kw-tag { background: #15223c; border: 1px solid #2b3d60; color: #7dd3fc; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; }
+    .lesson-text { font-size: 0.9rem; color: #e2e8f0; line-height: 1.5; font-style: italic; margin-bottom: 14px; }
+
+    /* Task History Table */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    table.data-table th, table.data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(45, 66, 102, 0.45);
+      text-align: left;
+    }
+    table.data-table th {
+      background: #091325;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    table.data-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      background: #0e172a;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-width: 800px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    .modal-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-body { padding: 22px; overflow-y: auto; flex: 1; }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #fff; }
+
+    /* Code Pre block */
+    pre.code-block {
+      background: #050b16;
+      border: 1px solid #1c2b42;
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="navbar">
+    <div class="nav-inner">
+      <div class="brand" onclick="switchTab('cowork')">
+        <div class="brand-logo">IR</div>
+        <div>
+          <div class="brand-title"><span>IRIS</span> Agent OS</div>
+        </div>
+        <div class="brand-badge">Startup Edition</div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-btn active" id="tab-btn-cowork" onclick="switchTab('cowork')">
+          <span>🚀</span> Co-Work Squad
+        </button>
+        <button class="nav-btn" id="tab-btn-workspace" onclick="switchTab('workspace')">
+          <span>📂</span> Workspace (<span id="nav-file-count">3</span>)
+        </button>
+        <button class="nav-btn" id="tab-btn-agents" onclick="switchTab('agents')">
+          <span>👤</span> Agent Desks
+        </button>
+        <button class="nav-btn" id="tab-btn-memory" onclick="switchTab('memory')">
+          <span>🧠</span> Memory Bank (<span id="nav-mem-count">0</span>)
+        </button>
+        <button class="nav-btn" id="tab-btn-history" onclick="switchTab('history')">
+          <span>📊</span> Analytics
+        </button>
+        <button class="nav-btn" id="tab-btn-settings" onclick="switchTab('settings')">
+          <span>⚙️</span> System
+        </button>
+      </nav>
+
+      <!-- KPI Bar -->
+      <div class="nav-kpis">
+        <div class="kpi-chip">
+          <span class="pulse-dot"></span>
+          <span>Runs:</span>
+          <strong id="kpi-runs">0</strong>
+        </div>
+        <div class="kpi-chip">
+          <span>Success:</span>
+          <strong id="kpi-success">100%</strong>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- PAGE 1: CO-WORK SQUAD WORKSPACE -->
+    <section id="page-cowork" class="page-view active">
+      <div class="grid-cowork">
+        <!-- Left: Task Composer -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>🚀</span> Company Task Launcher</div>
+            <span class="badge-pill green">Autonomous Squad</span>
+          </div>
+
+          <label>Quick Template Presets</label>
+          <div class="presets-container">
+            <span class="preset-chip" onclick="applyPreset('website')">🌐 Develop Landing Page Website</span>
+            <span class="preset-chip" onclick="applyPreset('parser')">🐍 Python Parser & Test Suite</span>
+            <span class="preset-chip" onclick="applyPreset('security')">🛡️ Security & API Audit</span>
+            <span class="preset-chip" onclick="applyPreset('hiring')">🤝 Senior Engineer Hiring Plan</span>
+          </div>
+
+          <label for="task-title">Task Title</label>
+          <input id="task-title" value="Modern Startup Landing Page Website">
+
+          <label for="task-prompt">Directive / Goal</label>
+          <textarea id="task-prompt" rows="5">Develop a modern responsive landing page website for IRIS Agent OS with HTML5, styles.css, and interactive app.js in the workspace folder.</textarea>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label for="task-budget">Estimated Budget ($ USD)</label>
+              <input id="task-budget" type="number" step="0.05" value="0.25">
+            </div>
+            <div>
+              <label for="task-baseline">Operating Mode</label>
+              <select id="task-baseline">
+                <option value="B8">Startup Squad (6+ Specialists)</option>
+                <option value="B7">Experience & Memory Aware</option>
+                <option value="B5">Resource Aware Squad</option>
+                <option value="B3">Parallel Delivery Squad</option>
+                <option value="B1">Small Team</option>
+                <option value="B0">Solo CEO</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="btn-run-squad" class="btn btn-primary" style="width: 100%; margin-top: 20px;" onclick="runSquadTask()">
+            <span>⚡ Launch Startup Squad</span>
+          </button>
+        </div>
+
+        <!-- Right: Execution Engine & Deliverables -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>✨</span> Execution Workspace & Deliverables</div>
+            <div id="execution-status-badge" class="badge-pill blue">Ready</div>
+          </div>
+
+          <!-- Progress Stepper -->
+          <div class="execution-steps" id="execution-stepper">
+            <div class="step-item done" id="step-ceo"><span>👑</span> CEO Plan</div>
+            <span class="step-arrow">→</span>
+            <div class="step-item" id="step-parallel"><span>👥</span> Specialist Delivery</div>
+            <span class="step-arrow">→</span>
+            <div class="step-item" id="step-review"><span>🛡️</span> Security Review</div>
+            <span class="step-arrow">→</span>
+            <div class="step-item" id="step-workspace"><span>📂</span> Workspace Files</div>
+          </div>
+
+          <!-- Memory Recall Banner -->
+          <div id="memory-recall-box" class="memory-recall-banner" style="display: none;">
+            <div class="memory-icon">🧠</div>
+            <div>
+              <strong>Persistent Memory Injected:</strong>
+              <span id="memory-recall-text">Learned experience #1 matched task capabilities.</span>
+            </div>
+          </div>
+
+          <!-- Workspace Files Generated Pill -->
+          <div id="workspace-alert-box" style="display: none; margin-bottom: 14px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); border-radius: 8px; padding: 10px 14px; align-items: center; justify-content: space-between;">
+            <div style="font-size: 0.88rem; color: #34d399;">
+              🎉 <strong>Workspace Updated:</strong> New files written to <code style="color: #6ee7d1;">workspace/</code>!
+            </div>
+            <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.8rem;" onclick="switchTab('workspace')">View in Workspace →</button>
+          </div>
+
+          <!-- Deliverables Tabs -->
+          <div class="deliverables-tabs" id="deliv-tabs-bar">
+            <button class="deliv-tab-btn active" onclick="showDeliverableTab('all')">Combined Synthesis</button>
+            <button class="deliv-tab-btn" onclick="showDeliverableTab('ceo')">CEO Roadmap</button>
+            <button class="deliv-tab-btn" onclick="showDeliverableTab('architect')">Architecture</button>
+            <button class="deliv-tab-btn" onclick="showDeliverableTab('developer')">Developer Code</button>
+            <button class="deliv-tab-btn" onclick="showDeliverableTab('testing')">QA Evidence</button>
+            <button class="deliv-tab-btn" onclick="showDeliverableTab('review')">Independent Review</button>
+            <button class="deliv-tab-btn" onclick="showDeliverableTab('json')">Raw Trace JSON</button>
+          </div>
+
+          <div class="deliverable-content" id="deliverable-body">Launch a company task to inspect CEO priorities, parallel specialist deliveries, independent audit, and files saved in workspace/.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: WORKSPACE FILE EXPLORER & LIVE PREVIEW -->
+    <section id="page-workspace" class="page-view">
+      <div class="grid-workspace">
+        <!-- Left: Workspace File List -->
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div class="card-header">
+            <div class="card-title"><span>📂</span> Workspace Files</div>
+            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="loadWorkspaceFiles()">↻ Refresh</button>
+          </div>
+          <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 12px;">
+            Target directory: <code style="color: #38bdf8;">/workspace/</code>. All files created by agents are stored and previewed live here.
+          </p>
+
+          <div class="file-list" id="workspace-file-list">
+            <!-- Populated dynamically -->
+          </div>
+
+          <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border); display: flex; gap: 8px;">
+            <input id="new-file-name" placeholder="e.g. styles.css" style="padding: 8px;">
+            <button class="btn btn-secondary" style="padding: 8px 14px;" onclick="createNewFile()">+ File</button>
+          </div>
+        </div>
+
+        <!-- Right: Live Preview & Code Inspector -->
+        <div class="preview-container">
+          <div class="preview-toolbar">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button class="btn btn-secondary" id="preview-mode-web-btn" style="padding: 6px 14px; font-size: 0.8rem;" onclick="setPreviewMode('web')">🌐 Live Web Preview</button>
+              <button class="btn btn-secondary" id="preview-mode-code-btn" style="padding: 6px 14px; font-size: 0.8rem;" onclick="setPreviewMode('code')">📝 Code Inspector</button>
+            </div>
+            <div class="preview-url">
+              <span class="pulse-dot"></span>
+              <span id="preview-url-text">http://127.0.0.1:8000/workspace/index.html</span>
+              <a id="preview-external-link" href="/workspace/index.html" target="_blank" style="margin-left: 8px; font-size: 0.8rem;">↗ Open</a>
+            </div>
+            <div>
+              <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.8rem;" onclick="reloadPreview()">↻ Reload</button>
+            </div>
+          </div>
+
+          <!-- Live Web Preview iframe -->
+          <iframe id="preview-frame" class="preview-iframe" src="/workspace/index.html"></iframe>
+
+          <!-- Code Inspector & Editor -->
+          <div id="code-inspector" style="display: none; flex: 1; flex-direction: column; padding: 14px; background: #060b16;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span id="editing-filename" style="font-family: monospace; font-size: 0.88rem; color: #38bdf8;">index.html</span>
+              <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="saveCurrentFile()">Save Changes</button>
+            </div>
+            <textarea id="file-editor-content" style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #081120; border-color: #243552;"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: AGENT DESKS (1-ON-1 & STRICT FIREWALL) -->
+    <section id="page-agents" class="page-view">
+      <div class="agent-selector-bar" id="agent-selector-bar">
+        <!-- Agent pill buttons populated dynamically -->
+      </div>
+
+      <div class="agent-desk-grid">
+        <!-- Left: Agent Profile & Firewall Specs -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" id="desk-agent-title">👑 CEO Agent Desk</div>
+            <span class="badge-pill green" id="desk-agent-provider">Simulated</span>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 16px;">
+            <div id="desk-agent-avatar" style="width: 64px; height: 64px; border-radius: 16px; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 10px;">👑</div>
+            <h3 id="desk-agent-name" style="font-family: 'Outfit'; font-size: 1.3rem;">CEO Agent</h3>
+            <p id="desk-agent-mandate" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Own the business outcome, prioritize scope, risks, and acceptance criteria.</p>
+          </div>
+
+          <div style="background: #091325; border: 1px solid #203350; border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: #f87171; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+              <span>🛡️ Deterministic Role Firewall Boundary</span>
+            </div>
+            <p id="desk-agent-boundary" style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.5;">
+              Hard boundary enforced: Cannot implement detailed code, run tests, or execute external tools.
+            </p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.82rem;">
+            <div style="background: #091325; padding: 8px 12px; border-radius: 6px; border: 1px solid #203350;">
+              <span style="color: var(--text-dim);">Reliability:</span>
+              <strong id="desk-agent-rel" style="color: #34d399; display: block; font-size: 1rem;">94%</strong>
+            </div>
+            <div style="background: #091325; padding: 8px 12px; border-radius: 6px; border: 1px solid #203350;">
+              <span style="color: var(--text-dim);">Cost / Turn:</span>
+              <strong id="desk-agent-cost" style="color: #38bdf8; display: block; font-size: 1rem;">$0.030</strong>
+            </div>
+          </div>
+
+          <!-- Scenario Firewall Demo Button -->
+          <div style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px;">
+            <label>Firewall Testing Scenarios</label>
+            <div id="desk-test-scenarios" style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+              <!-- Dynamic buttons based on active agent -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: 1-on-1 Interactive Chat Canvas -->
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div class="card-header">
+            <div class="card-title"><span>💬</span> 1-on-1 Collaborative Desk</div>
+            <span class="badge-pill blue">Firewall Shield Active</span>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <label for="desk-prompt-input">Direct Command to Agent</label>
+            <textarea id="desk-prompt-input" rows="4" placeholder="Type your directive or test a boundary violation..."></textarea>
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+              <button class="btn btn-primary" id="btn-agent-chat" onclick="submitAgentChat()">
+                <span>⚡ Send Directive</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Firewall Intercept Notification -->
+          <div id="desk-firewall-box" class="firewall-alert" style="display: none;">
+            <div class="firewall-alert-header">
+              <span>🛡️ FIREWALL BOUNDARY INTERCEPTED</span>
+            </div>
+            <p id="desk-firewall-msg"></p>
+            <div style="margin-top: 10px;">
+              <button class="btn btn-secondary" id="desk-firewall-redirect-btn" style="padding: 6px 14px; font-size: 0.8rem;">
+                Switch to Recommended Agent →
+              </button>
+            </div>
+          </div>
+
+          <!-- Agent Response Output -->
+          <div style="flex: 1; margin-top: 14px; display: flex; flex-direction: column;">
+            <label>Agent Output & Deliverable</label>
+            <div id="desk-response-box" class="deliverable-content" style="flex: 1; min-height: 220px;">
+              Direct a command to this specialist. If they attempt an action outside their mandate, the firewall will block execution and guide you to the proper specialist.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 4: PERSISTENT MEMORY & KNOWLEDGE BANK -->
+    <section id="page-memory" class="page-view">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+        <div>
+          <h2 style="font-family: 'Outfit'; font-size: 1.6rem;">Persistent Organizational Memory</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">
+            IRIS retains lessons and strategy topologies from successful executions. When matching keywords occur in new tasks, memories are automatically recalled.
+          </p>
+        </div>
+        <button class="btn btn-primary" onclick="openTeachModal()">+ Teach Memory / Add Guideline</button>
+      </div>
+
+      <div class="memory-grid" id="memory-cards-container">
+        <!-- Memory cards populated dynamically -->
+      </div>
+    </section>
+
+    <!-- PAGE 5: TASK HISTORY & ANALYTICS -->
+    <section id="page-history" class="page-view">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span>📊</span> Execution History & Verification Audit</div>
+          <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.8rem;" onclick="loadDashboard()">↻ Refresh</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Task Title</th>
+              <th>Status</th>
+              <th>Confidence</th>
+              <th>Cost ($)</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PAGE 6: SYSTEM & RUNTIME -->
+    <section id="page-settings" class="page-view">
+      <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <div class="card-header">
+          <div class="card-title"><span>⚙️</span> System & NVIDIA NIM Diagnostics</div>
+          <span class="badge-pill green" id="sys-status-badge">Operational</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.9rem;">
+          <div style="display: flex; justify-content: space-between; padding: 10px; background: #091325; border-radius: 8px;">
+            <span style="color: var(--text-muted);">Active Execution Engine:</span>
+            <strong id="sys-engine" style="color: #38bdf8;">Autonomous Simulated Engine</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 10px; background: #091325; border-radius: 8px;">
+            <span style="color: var(--text-muted);">NVIDIA NIM API Key:</span>
+            <span id="sys-nim-key" class="badge-pill amber">Not Set (Using Safe Local Simulation)</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 10px; background: #091325; border-radius: 8px;">
+            <span style="color: var(--text-muted);">NIM Model Architecture:</span>
+            <code id="sys-model" style="color: #34d399;">nvidia/nemotron-3.5-lightning-30b-a3b</code>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 10px; background: #091325; border-radius: 8px;">
+            <span style="color: var(--text-muted);">Workspace Storage:</span>
+            <code id="sys-workspace" style="color: #94a3b8; font-size: 0.8rem;">workspace/</code>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 10px; background: #091325; border-radius: 8px;">
+            <span style="color: var(--text-muted);">SQLite Database:</span>
+            <code id="sys-db" style="color: #94a3b8; font-size: 0.8rem;">data/iris.db</code>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;">
+          💡 <strong>NVIDIA NIM Cloud Activation:</strong> To route all 7 agents through real NIM reasoning models, set your API key in the terminal before running:
+          <pre class="code-block" style="margin-top: 8px;">$env:NVIDIA_API_KEY = "nvapi-..."
+python run.py</pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TEACH MEMORY MODAL -->
+  <div class="modal-backdrop" id="teach-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="font-family: 'Outfit'; font-size: 1.25rem;">🧠 Teach Co-Work / Add Organizational Memory</h3>
+        <button class="modal-close" onclick="closeTeachModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <label for="mem-keywords">Capability Keywords (comma-separated)</label>
+        <input id="mem-keywords" value="web, frontend, styling, design">
+
+        <label for="mem-lesson">Lesson / Rule to Remember</label>
+        <textarea id="mem-lesson" rows="4" placeholder="e.g. For web applications, always use vanilla CSS with glassmorphism and modular JavaScript in workspace/."></textarea>
+
+        <label for="mem-outcome">Confidence Rating (0.0 to 1.0)</label>
+        <input id="mem-outcome" type="number" step="0.05" min="0.5" max="1.0" value="0.95">
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="closeTeachModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitTeachMemory()">Store in Memory Bank</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACE INSPECTOR MODAL -->
+  <div class="modal-backdrop" id="trace-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="font-family: 'Outfit'; font-size: 1.25rem;" id="trace-modal-title">Task Trace Inspector</h3>
+        <button class="modal-close" onclick="closeTraceModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <pre class="code-block" id="trace-modal-json"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State Store
+    const $ = id => document.getElementById(id);
+    let ALL_AGENTS = [];
+    let CURRENT_AGENT_ID = 'ceo';
+    let CURRENT_FILE = 'index.html';
+    let LAST_TASK_DATA = null;
+
+    // --- Tab Switching ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+      const targetPage = $('page-' + tabId);
+      const targetBtn = $('tab-btn-' + tabId);
+      if (targetPage) targetPage.classList.add('active');
+      if (targetBtn) targetBtn.classList.add('active');
+
+      if (tabId === 'workspace') loadWorkspaceFiles();
+      if (tabId === 'memory') loadMemories();
+      if (tabId === 'agents') loadAgents();
+      if (tabId === 'history') loadDashboard();
+      if (tabId === 'settings') loadSystemInfo();
+    }
+
+    // --- Presets for Co-Work Launcher ---
+    function applyPreset(type) {
+      if (type === 'website') {
+        $('task-title').value = 'Modern Responsive Landing Page';
+        $('task-prompt').value = 'Develop a modern responsive landing page website for IRIS Agent OS with HTML5, styles.css, and interactive app.js in the workspace folder.';
+      } else if (type === 'parser') {
+        $('task-title').value = 'Python Parser & Test Suite';
+        $('task-prompt').value = 'Implement and test a Python parser with robust error handling, tokenization, and verification tests in workspace/.';
+      } else if (type === 'security') {
+        $('task-title').value = 'Security & Vulnerability Audit';
+        $('task-prompt').value = 'Perform independent security review, identify potential injection risks, and verify agent boundaries.';
+      } else if (type === 'hiring') {
+        $('task-title').value = 'Engineering Hiring & Team Strategy';
+        $('task-prompt').value = 'Create an engineering hiring plan, job description for Senior Full-Stack Engineer, and team structure policy.';
+      }
+    }
+
+    // --- Co-Work Execution Engine ---
+    async function runSquadTask() {
+      const btn = $('btn-run-squad');
+      const badge = $('execution-status-badge');
+      const bodyEl = $('deliverable-body');
+      const recallBox = $('memory-recall-box');
+      const wsAlert = $('workspace-alert-box');
+
+      const title = $('task-title').value.trim();
+      const prompt = $('task-prompt').value.trim();
+      const budget = +$('task-budget').value;
+      const baseline = $('task-baseline').value;
+
+      if (!prompt) {
+        alert('Please provide a task prompt or directive.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>⚡ CEO Planning & Dispatching Specialists...</span>';
+      badge.className = 'badge-pill amber';
+      badge.textContent = 'Executing...';
+      wsAlert.style.display = 'none';
+
+      // Visual Stepper Update
+      $('step-ceo').className = 'step-item active';
+      $('step-parallel').className = 'step-item';
+      $('step-review').className = 'step-item';
+      $('step-workspace').className = 'step-item';
+
+      bodyEl.textContent = 'CEO defining scope and milestones... Launching parallel specialist agents...';
+
+      try {
+        const res = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, prompt, budget, baseline })
+        });
+        const data = await res.json();
+        LAST_TASK_DATA = data;
+
+        // Visual Stepper Complete
+        $('step-ceo').className = 'step-item done';
+        $('step-parallel').className = 'step-item done';
+        $('step-review').className = 'step-item done';
+        $('step-workspace').className = 'step-item done';
+
+        badge.className = 'badge-pill green';
+        badge.textContent = 'Complete (Pass)';
+
+        // Check if memory was recalled
+        if (data.strategy && data.strategy.experience_id) {
+          recallBox.style.display = 'flex';
+          $('memory-recall-text').textContent = `Retained Memory #${data.strategy.experience_id} applied: Topology & verification parameters reused.`;
+        } else {
+          recallBox.style.display = 'none';
+        }
+
+        // Show artifacts alert if files written
+        if (data.result && data.result.artifacts && data.result.artifacts.length > 0) {
+          wsAlert.style.display = 'flex';
+        }
+
+        showDeliverableTab('all');
+        loadDashboard();
+        loadWorkspaceFiles();
+      } catch (err) {
+        badge.className = 'badge-pill rose';
+        badge.textContent = 'Failed';
+        bodyEl.textContent = 'Execution error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡ Launch Startup Squad</span>';
+      }
+    }
+
+    function showDeliverableTab(tab) {
+      document.querySelectorAll('.deliv-tab-btn').forEach(b => b.classList.remove('active'));
+      const bodyEl = $('deliverable-body');
+
+      if (!LAST_TASK_DATA) {
+        bodyEl.textContent = 'No task deliverable yet. Click "Launch Startup Squad" to run.';
+        return;
+      }
+
+      const out = LAST_TASK_DATA.result ? LAST_TASK_DATA.result.output : '';
+      if (tab === 'all') {
+        bodyEl.textContent = out;
+      } else if (tab === 'json') {
+        bodyEl.textContent = JSON.stringify(LAST_TASK_DATA, null, 2);
+      } else {
+        const headers = {
+          ceo: '## CEO Agent',
+          architect: '## Full-Stack Architect',
+          developer: '## Developer Agent',
+          testing: '## Testing Agent',
+          review: '## Review Agent'
+        };
+        const target = headers[tab];
+        if (target && out.includes(target)) {
+          const part = out.split(target)[1].split('## ')[0].trim();
+          bodyEl.textContent = `${target}\n${part}`;
+        } else {
+          bodyEl.textContent = `${target || tab} deliverable not generated in this run configuration.`;
+        }
+      }
+    }
+
+    // --- Workspace File Explorer ---
+    async function loadWorkspaceFiles() {
+      try {
+        const res = await fetch('/api/workspace');
+        const data = await res.json();
+        const listEl = $('workspace-file-list');
+        listEl.innerHTML = '';
+        $('nav-file-count').textContent = data.files.length;
+
+        data.files.forEach(file => {
+          const item = document.createElement('div');
+          item.className = 'file-item' + (file.name === CURRENT_FILE ? ' selected' : '');
+          item.onclick = () => selectFile(file.name);
+
+          const icon = file.is_web ? (file.ext === 'html' ? '🌐' : (file.ext === 'css' ? '🎨' : '⚡')) : '📄';
+          item.innerHTML = `
+            <div class="file-item-name">
+              <span>${icon}</span>
+              <span>${file.name}</span>
+            </div>
+            <div class="file-meta">
+              <span>${file.size} B</span>
+              <button onclick="event.stopPropagation(); deleteFile('${file.name}')" style="background:transparent; border:none; color:#f87171; cursor:pointer; margin-left:6px;">×</button>
+            </div>
+          `;
+          listEl.appendChild(item);
+        });
+
+        // Ensure current file is selected
+        if (CURRENT_FILE) {
+          loadFileContent(CURRENT_FILE);
+        }
+      } catch (err) {
+        console.error('Error loading workspace:', err);
+      }
+    }
+
+    function selectFile(filename) {
+      CURRENT_FILE = filename;
+      document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+      loadWorkspaceFiles();
+      loadFileContent(filename);
+      if (filename.endsWith('.html') || filename.endsWith('.htm')) {
+        $('preview-frame').src = '/workspace/' + filename;
+        $('preview-url-text').textContent = window.location.origin + '/workspace/' + filename;
+        $('preview-external-link').href = '/workspace/' + filename;
+      }
+    }
+
+    async function loadFileContent(filename) {
+      $('editing-filename').textContent = filename;
+      try {
+        const res = await fetch('/api/workspace/file?name=' + encodeURIComponent(filename));
+        const data = await res.json();
+        $('file-editor-content').value = data.content || '';
+      } catch (err) {
+        $('file-editor-content').value = 'Error reading file';
+      }
+    }
+
+    async function saveCurrentFile() {
+      if (!CURRENT_FILE) return;
+      const content = $('file-editor-content').value;
+      await fetch('/api/workspace/file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: CURRENT_FILE, content })
+      });
+      alert(`File '${CURRENT_FILE}' saved!`);
+      reloadPreview();
+    }
+
+    async function createNewFile() {
+      const input = $('new-file-name');
+      const name = input.value.trim();
+      if (!name) return;
+      await fetch('/api/workspace/file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, content: '/* Created in IRIS Workspace */\n' })
+      });
+      input.value = '';
+      CURRENT_FILE = name;
+      loadWorkspaceFiles();
+    }
+
+    async function deleteFile(name) {
+      if (!confirm(`Delete file '${name}' from workspace?`)) return;
+      await fetch('/api/workspace/file?name=' + encodeURIComponent(name), { method: 'DELETE' });
+      if (CURRENT_FILE === name) CURRENT_FILE = 'index.html';
+      loadWorkspaceFiles();
+    }
+
+    function setPreviewMode(mode) {
+      if (mode === 'web') {
+        $('preview-frame').style.display = 'block';
+        $('code-inspector').style.display = 'none';
+        $('preview-mode-web-btn').className = 'btn btn-primary';
+        $('preview-mode-code-btn').className = 'btn btn-secondary';
+      } else {
+        $('preview-frame').style.display = 'none';
+        $('code-inspector').style.display = 'flex';
+        $('preview-mode-code-btn').className = 'btn btn-primary';
+        $('preview-mode-web-btn').className = 'btn btn-secondary';
+      }
+    }
+
+    function reloadPreview() {
+      const frame = $('preview-frame');
+      frame.src = frame.src;
+    }
+
+    // --- Agent Desks & Strict Firewall ---
+    async function loadAgents() {
+      try {
+        const res = await fetch('/api/agents');
+        ALL_AGENTS = await res.json();
+        renderAgentSelector();
+        selectAgent(CURRENT_AGENT_ID);
+      } catch (err) {
+        console.error('Error loading agents:', err);
+      }
+    }
+
+    function renderAgentSelector() {
+      const bar = $('agent-selector-bar');
+      bar.innerHTML = '';
+      const icons = { ceo: '👑', fullstack: '🏗️', developer: '💻', testing: '🧪', review: '🛡️', resource: '📦', hr: '🤝' };
+
+      ALL_AGENTS.forEach(agent => {
+        const btn = document.createElement('button');
+        btn.className = 'agent-pill-btn' + (agent.id === CURRENT_AGENT_ID ? ' active' : '');
+        btn.innerHTML = `<span>${icons[agent.id] || '👤'}</span> <span>${agent.name}</span>`;
+        btn.onclick = () => selectAgent(agent.id);
+        bar.appendChild(btn);
+      });
+    }
+
+    function selectAgent(agentId) {
+      CURRENT_AGENT_ID = agentId;
+      renderAgentSelector();
+      const agent = ALL_AGENTS.find(a => a.id === agentId) || ALL_AGENTS[0];
+      if (!agent) return;
+
+      const icons = { ceo: '👑', fullstack: '🏗️', developer: '💻', testing: '🧪', review: '🛡️', resource: '📦', hr: '🤝' };
+      $('desk-agent-avatar').textContent = icons[agent.id] || '👤';
+      $('desk-agent-title').textContent = `${icons[agent.id] || ''} ${agent.name} Desk`;
+      $('desk-agent-name').textContent = agent.name;
+      $('desk-agent-mandate').textContent = agent.mandate;
+      $('desk-agent-rel').textContent = Math.round(agent.reliability * 100) + '%';
+      $('desk-agent-cost').textContent = '$' + agent.cost_per_turn.toFixed(3);
+      $('desk-agent-provider').textContent = agent.provider;
+
+      // Hard boundaries
+      const boundaries = {
+        hr: "HR Boundary: People, hiring & team policy only. Strictly FORBIDDEN from coding, web development, architecture, testing, or security audits.",
+        developer: "Developer Boundary: Software implementation and bug fixes. Strictly FORBIDDEN from making HR hiring/firing decisions or approving executive budgets.",
+        fullstack: "Architect Boundary: System design and API schemas. Forbidden from HR policy or legal compliance.",
+        testing: "Testing Boundary: QA verification and test suites. Forbidden from writing production features or HR policy.",
+        review: "Review Boundary: Independent security audit only. Cannot be primary implementation builder or HR operator.",
+        resource: "Resource Boundary: Research, APIs, and dependencies. Forbidden from writing production code.",
+        ceo: "CEO Boundary: High-level roadmap and scope. Forbidden from writing low-level code implementation."
+      };
+      $('desk-agent-boundary').textContent = boundaries[agent.id] || agent.firewall_rule.mandate;
+
+      // Scenario quick test buttons
+      const scenariosBox = $('desk-test-scenarios');
+      scenariosBox.innerHTML = '';
+      if (agent.id === 'hr') {
+        scenariosBox.innerHTML = `
+          <button class="btn btn-danger" style="font-size: 0.78rem; padding: 6px 10px;" onclick="testScenario('Develop a responsive website for our startup in workspace/')">
+            🚨 Trigger Firewall: "Develop a website"
+          </button>
+          <button class="btn btn-secondary" style="font-size: 0.78rem; padding: 6px 10px;" onclick="testScenario('Draft a job description and hiring criteria for Senior Backend Engineer')">
+            ✅ Valid Mandate: "Draft hiring criteria"
+          </button>
+        `;
+      } else if (agent.id === 'developer') {
+        scenariosBox.innerHTML = `
+          <button class="btn btn-danger" style="font-size: 0.78rem; padding: 6px 10px;" onclick="testScenario('Fire the marketing employee and adjust their compensation benefits')">
+            🚨 Trigger Firewall: "Fire employee & compensation"
+          </button>
+          <button class="btn btn-secondary" style="font-size: 0.78rem; padding: 6px 10px;" onclick="testScenario('Develop a modern responsive website in workspace/')">
+            ✅ Valid Mandate: "Develop website in workspace"
+          </button>
+        `;
+      } else if (agent.id === 'testing') {
+        scenariosBox.innerHTML = `
+          <button class="btn btn-danger" style="font-size: 0.78rem; padding: 6px 10px;" onclick="testScenario('Hire two QA engineers and approve their salaries')">
+            🚨 Trigger Firewall: "Hire engineers & salaries"
+          </button>
+          <button class="btn btn-secondary" style="font-size: 0.78rem; padding: 6px 10px;" onclick="testScenario('Create comprehensive unit tests and edge cases for python parser')">
+            ✅ Valid Mandate: "Create test assertions"
+          </button>
+        `;
+      } else {
+        scenariosBox.innerHTML = `
+          <button class="btn btn-secondary" style="font-size: 0.78rem; padding: 6px 10px;" onclick="testScenario('Execute deliverable according to role mandate')">
+            ✅ Standard Directive
+          </button>
+        `;
+      }
+
+      // Clear alert
+      $('desk-firewall-box').style.display = 'none';
+      $('desk-response-box').textContent = `Ready at ${agent.name} desk. Send a directive or test the firewall.`;
+    }
+
+    function testScenario(prompt) {
+      $('desk-prompt-input').value = prompt;
+      submitAgentChat();
+    }
+
+    async function submitAgentChat() {
+      const prompt = $('desk-prompt-input').value.trim();
+      if (!prompt) return;
+
+      const btn = $('btn-agent-chat');
+      const box = $('desk-response-box');
+      const fwBox = $('desk-firewall-box');
+      const fwMsg = $('desk-firewall-msg');
+      const fwRedirectBtn = $('desk-firewall-redirect-btn');
+
+      btn.disabled = true;
+      btn.textContent = 'Checking Firewall & Executing...';
+      fwBox.style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/agents/${CURRENT_AGENT_ID}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+
+        if (data.blocked) {
+          // FIREWALL TRIGGERED!
+          fwBox.style.display = 'block';
+          fwMsg.innerHTML = `<strong>Violation:</strong> ${data.violation}<br><br><strong>Action:</strong> ${data.output}`;
+          fwRedirectBtn.textContent = `Switch to ${data.suggested_name} (${data.suggested_agent}) →`;
+          fwRedirectBtn.onclick = () => selectAgent(data.suggested_agent);
+          box.textContent = `[FIREWALL INTERCEPTED] Execution blocked to protect domain safety. See alert above.`;
+        } else {
+          fwBox.style.display = 'none';
+          let outputText = data.output;
+          if (data.artifacts && data.artifacts.length > 0) {
+            outputText += `\n\n🎉 Artifacts written to workspace/: ${data.artifacts.join(', ')}`;
+            loadWorkspaceFiles();
+          }
+          box.textContent = outputText;
+        }
+      } catch (err) {
+        box.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Send Directive';
+      }
+    }
+
+    // --- Persistent Memory Bank ---
+    async function loadMemories() {
+      try {
+        const res = await fetch('/api/memories');
+        const memories = await res.json();
+        const container = $('memory-cards-container');
+        $('nav-mem-count').textContent = memories.length;
+        container.innerHTML = '';
+
+        if (memories.length === 0) {
+          container.innerHTML = `
+            <div class="card" style="grid-column: 1/-1; text-align: center; padding: 40px;">
+              <h3>No memories recorded yet</h3>
+              <p style="color: var(--text-muted); margin-top: 8px;">Memories are automatically acquired from successful task executions, or you can teach one manually.</p>
+              <button class="btn btn-primary" style="margin-top: 14px;" onclick="openTeachModal()">+ Teach First Memory</button>
+            </div>
+          `;
+          return;
+        }
+
+        memories.forEach(mem => {
+          const card = document.createElement('div');
+          card.className = 'memory-card';
+          const kwHtml = (mem.keywords || []).map(k => `<span class="kw-tag">${k}</span>`).join('');
+          card.innerHTML = `
+            <div>
+              <div class="memory-header">
+                <span class="badge-pill blue">Memory #${mem.id}</span>
+                <span class="badge-pill green">${Math.round(mem.outcome * 100)}% Confidence</span>
+              </div>
+              <div class="keywords-wrap">${kwHtml}</div>
+              <div class="lesson-text">"${mem.lesson}"</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 10px;">
+              <span style="font-size: 0.75rem; color: var(--text-dim);">${mem.created_at || 'Retained'}</span>
+              <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.72rem;" onclick="deleteMemory(${mem.id})">Forget</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        console.error('Error loading memories:', err);
+      }
+    }
+
+    function openTeachModal() { $('teach-modal').classList.add('active'); }
+    function closeTeachModal() { $('teach-modal').classList.remove('active'); }
+
+    async function submitTeachMemory() {
+      const keywords = $('mem-keywords').value.trim();
+      const lesson = $('mem-lesson').value.trim();
+      const outcome = +$('mem-outcome').value;
+
+      if (!lesson) {
+        alert('Please provide a lesson or guideline.');
+        return;
+      }
+
+      await fetch('/api/memories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords, lesson, outcome })
+      });
+      closeTeachModal();
+      loadMemories();
+    }
+
+    async function deleteMemory(id) {
+      if (!confirm('Remove this memory from IRIS long-term bank?')) return;
+      await fetch('/api/memories/' + id, { method: 'DELETE' });
+      loadMemories();
+    }
+
+    // --- Task History & Trace Modal ---
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/dashboard');
+        const data = await res.json();
+
+        $('kpi-runs').textContent = data.completed;
+        $('kpi-success').textContent = Math.round(data.success_rate * 100) + '%';
+        $('nav-file-count').textContent = data.workspace_files_count || 0;
+        $('nav-mem-count').textContent = data.memory_count || 0;
+
+        const tbody = $('history-table-body');
+        tbody.innerHTML = '';
+
+        if (!data.tasks || data.tasks.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 24px;">No tasks run yet. Submit a task in Co-Work to start.</td></tr>`;
+          return;
+        }
+
+        data.tasks.forEach(t => {
+          const tr = document.createElement('tr');
+          const pass = t.success;
+          tr.innerHTML = `
+            <td>#${t.id}</td>
+            <td><strong>${t.title}</strong></td>
+            <td><span class="badge-pill ${pass ? 'green' : 'rose'}">${pass ? 'PASS' : 'FAIL'}</span></td>
+            <td>${Math.round((t.confidence || 0) * 100)}%</td>
+            <td>$${(t.cost || 0).toFixed(3)}</td>
+            <td style="color: var(--text-dim); font-size: 0.8rem;">${t.created_at || 'Just now'}</td>
+            <td><button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.78rem;" onclick="viewTaskTrace(${t.id})">Trace</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Error loading dashboard:', err);
+      }
+    }
+
+    async function viewTaskTrace(id) {
+      const res = await fetch('/api/tasks/' + id);
+      const data = await res.json();
+      $('trace-modal-title').textContent = `Task #${id} Execution Trace`;
+      $('trace-modal-json').textContent = JSON.stringify(data, null, 2);
+      $('trace-modal').classList.add('active');
+    }
+    function closeTraceModal() { $('trace-modal').classList.remove('active'); }
+
+    // --- System Diagnostics ---
+    async function loadSystemInfo() {
+      try {
+        const res = await fetch('/api/system');
+        const data = await res.json();
+        $('sys-engine').textContent = data.active_engine;
+        $('sys-nim-key').textContent = data.nvidia_api_key_configured ? 'Configured & Active' : 'Not Set (Local Autonomous Simulated Engine)';
+        $('sys-nim-key').className = 'badge-pill ' + (data.nvidia_api_key_configured ? 'green' : 'amber');
+        $('sys-model').textContent = data.nim_model;
+        $('sys-workspace').textContent = data.workspace_dir;
+        $('sys-db').textContent = data.database_path;
+      } catch (err) {
+        console.error('Error loading system info:', err);
+      }
+    }
+
+    // Initial Bootstrap
+    loadDashboard();
+    loadWorkspaceFiles();
+    loadAgents();
+    loadMemories();
+  </script>
+</body>
+</html>
