@@ -30,4 +30,21 @@ class IrisTests(unittest.TestCase):
         parallel = [event for event in run["result"]["trace"] if event.get("phase") == "parallel_delivery"]
         self.assertGreaterEqual(len(parallel), 4)
 
+    def test_hr_firewall_blocks_coding_and_redirects(self):
+        result = self.app.run_single_agent("hr", "Develop a responsive website with Python backend")
+        self.assertTrue(result["blocked"])
+        self.assertEqual(result["suggested_agent"], "developer")
+        self.assertIn("FIREWALL BLOCKED", result["output"])
+
+    def test_workspace_files_generation(self):
+        run = self.app.run("Build landing page", "Develop a website landing page with HTML and CSS", .30, "B8")
+        files = self.app.workspace.list_files()
+        file_names = [f["name"] for f in files]
+        self.assertIn("index.html", file_names)
+
+    def test_memory_persistence_and_listing(self):
+        self.app.store.save_experience(["web", "frontend"], {"topology": "parallel"}, 0.95, "Use modular vanilla CSS")
+        experiences = self.app.store.list_experiences()
+        self.assertTrue(any("modular vanilla CSS" in e["lesson"] for e in experiences))
+
 if __name__ == "__main__": unittest.main()
